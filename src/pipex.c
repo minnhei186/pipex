@@ -6,7 +6,7 @@
 /*   By: hosokawa <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/04 11:31:23 by hosokawa          #+#    #+#             */
-/*   Updated: 2024/09/05 16:11:48 by hosokawa         ###   ########.fr       */
+/*   Updated: 2024/09/06 09:45:13 by hosokawa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,10 @@ void	data_init(t_pipex *data, char **argv)
 	data->outfile = ft_strdup(argv[4]);
 	if (!data->outfile)
 		error_exit("outfile_malloc_error", 0, data);
-	data->in_command = ft_split(argv[2],' ');
+	data->in_command = ft_split(argv[2], ' ');
 	if (!data->in_command)
 		error_exit("in_command_malloc_error", 0, data);
-	data->out_command = ft_split(argv[3],' ');
+	data->out_command = ft_split(argv[3], ' ');
 	if (!data->out_command)
 		error_exit("out_command_malloc_error", 0, data);
 	if (access(data->infile, F_OK) == -1)
@@ -42,25 +42,32 @@ void	data_init(t_pipex *data, char **argv)
 
 void	command_do(t_pipex *data)
 {
-	int pid;
-	int pipe_fd[2];
+	int		pid;
+	int		pipe_fd[2];
+	char	str[1000];
+	int filein_fd;
+	//int fileout_fd;
 
+	filein_fd=open(data->infile,O_WRONLY);
+	ft_memset(str,'\0',1000);
 	pipe(pipe_fd);
-
-	pid=fork;
-
-	//標準出力、fd=STDOUT_FILENO==1
-	//できれば同期させておきたいよね（こうすることで競合を防げる時間がなくなる)
-	if(pid==0)
+	pid = fork();
+	if (pid == 0)
 	{
+		dup2(pipe_fd[1], STDOUT_FILENO);
 		if (execvp(data->in_command[0], data->in_command) == -1)
 			error_exit("execvp_error", 0, data);
 	}
 	else
 	{
 		wait(0);
-		
-
+		close(pipe_fd[1]);
+		read(pipe_fd[0], str, 1000);
+		close(pipe_fd[0]);
+		write(filein_fd, str, 1000);
+		printf("now_parent\n");
+	}
+	close(filein_fd);
 }
 
 int	main(int argc, char **argv)
