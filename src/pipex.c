@@ -6,7 +6,7 @@
 /*   By: hosokawa <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/04 11:31:23 by hosokawa          #+#    #+#             */
-/*   Updated: 2024/09/06 10:23:56 by hosokawa         ###   ########.fr       */
+/*   Updated: 2024/09/06 13:21:07 by hosokawa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,25 +48,28 @@ void	command_do(t_pipex *data)
 	int		pipe_fd[2];
 	char	str[1000];
 	int filein_fd;
+	int fileout_fd;
 
 	filein_fd=open(data->infile,O_RDONLY);
+	fileout_fd=open(data->outfile,O_WRONLY);
 	ft_memset(str,'\0',1000);
 	pipe(pipe_fd);
 	pid = fork();
 	if (pid == 0)
 	{
 		dup2(filein_fd, STDIN_FILENO);
+		dup2(pipe_fd[1],STDOUT_FILENO);
 		if (execvp(data->in_command[0], data->in_command) == -1)
 			error_exit("execvp_error", 0, data);
 	}
 	else
 	{
 		wait(0);
-		close(pipe_fd[1]);
-	//	read(pipe_fd[0], str, 1000);
-		close(pipe_fd[0]);
-//		write(filein_fd, str, 1000);
 		printf("now_parent\n");
+		dup2(pipe_fd[0],STDIN_FILENO);
+		dup2(fileout_fd,STDOUT_FILENO);
+		if (execvp(data->out_command[0], data->out_command) == -1)
+			error_exit("execvp_error", 0, data);
 	}
 	close(filein_fd);
 }
