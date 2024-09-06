@@ -6,7 +6,7 @@
 /*   By: hosokawa <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/04 11:31:23 by hosokawa          #+#    #+#             */
-/*   Updated: 2024/09/06 09:45:13 by hosokawa         ###   ########.fr       */
+/*   Updated: 2024/09/06 10:23:56 by hosokawa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,21 +40,22 @@ void	data_init(t_pipex *data, char **argv)
 		error_exit("out_file_cannot_access", 0, data);
 }
 
+
+//リダイレクションとコマンドだけでは通信する必要もない、なぜならその情報はもういらないから、しかし処理して表した情報を別の処理に使いたいなら、パイプを必要とする。なるほどね。
 void	command_do(t_pipex *data)
 {
 	int		pid;
 	int		pipe_fd[2];
 	char	str[1000];
 	int filein_fd;
-	//int fileout_fd;
 
-	filein_fd=open(data->infile,O_WRONLY);
+	filein_fd=open(data->infile,O_RDONLY);
 	ft_memset(str,'\0',1000);
 	pipe(pipe_fd);
 	pid = fork();
 	if (pid == 0)
 	{
-		dup2(pipe_fd[1], STDOUT_FILENO);
+		dup2(filein_fd, STDIN_FILENO);
 		if (execvp(data->in_command[0], data->in_command) == -1)
 			error_exit("execvp_error", 0, data);
 	}
@@ -62,9 +63,9 @@ void	command_do(t_pipex *data)
 	{
 		wait(0);
 		close(pipe_fd[1]);
-		read(pipe_fd[0], str, 1000);
+	//	read(pipe_fd[0], str, 1000);
 		close(pipe_fd[0]);
-		write(filein_fd, str, 1000);
+//		write(filein_fd, str, 1000);
 		printf("now_parent\n");
 	}
 	close(filein_fd);
