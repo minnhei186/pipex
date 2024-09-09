@@ -6,7 +6,7 @@
 /*   By: hosokawa <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/04 11:31:23 by hosokawa          #+#    #+#             */
-/*   Updated: 2024/09/06 13:21:07 by hosokawa         ###   ########.fr       */
+/*   Updated: 2024/09/09 17:52:51 by hosokawa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,8 @@ void	data_null_init(t_pipex *data)
 	data->outfile = NULL;
 	data->in_command = NULL;
 	data->out_command = NULL;
+	data->infile_fd = -1; // freeにおいて
+	data->outfile_fd = -1;
 }
 
 void	data_init(t_pipex *data, char **argv)
@@ -34,44 +36,78 @@ void	data_init(t_pipex *data, char **argv)
 	data->out_command = ft_split(argv[3], ' ');
 	if (!data->out_command)
 		error_exit("out_command_malloc_error", 0, data);
-	if (access(data->infile, F_OK) == -1)
-		error_exit("in_file_cannot_access", 0, data);
-	if (access(data->outfile, F_OK) == -1)
-		error_exit("out_file_cannot_access", 0, data);
 }
 
-
-//リダイレクションとコマンドだけでは通信する必要もない、なぜならその情報はもういらないから、しかし処理して表した情報を別の処理に使いたいなら、パイプを必要とする。なるほどね。
-void	command_do(t_pipex *data)
+void	get_file_fd(t_pipex *data)
 {
-	int		pid;
-	int		pipe_fd[2];
-	char	str[1000];
-	int filein_fd;
-	int fileout_fd;
+	if (access(data->infile, F_OK) == -1)
+		error_exit("in_file_cannot_access", 0, data);
+	data->infile_fd = open(data->infile, O_RDONLY);
+	if (data->infile_fd == -1)
+		error_exit("in_file_cannot_open", 0, data);
+	if (access(data->outfile, F_OK) == -1)
+		error_exit("out_file_cannot_access", 0, data);
+	data->outfile_fd = open(data->outfile, O_WRONLY);
+	if (data->outfile_fd == -1)
+		error_exit("out_file_cannot_open", 0, data);
+}
 
-	filein_fd=open(data->infile,O_RDONLY);
-	fileout_fd=open(data->outfile,O_WRONLY);
-	ft_memset(str,'\0',1000);
-	pipe(pipe_fd);
+// exeに問題があるのではないようだ
+// dupとpipeに問題がある可能性があるかもね。
+// プロセスとpipeとdupについて,パイプとプロセスについて考え
+// pipeの定義と静的か、どのようなものなんか、プロセスと、ファイルディスクーのコピーについて
+
+//pipeをそのままに
+void	exec_absorb_redirect(t_pipex *data, int *pipe_fd)
+{
+	int	pid;
+
+
 	pid = fork();
+
 	if (pid == 0)
 	{
-		dup2(filein_fd, STDIN_FILENO);
-		dup2(pipe_fd[1],STDOUT_FILENO);
-		if (execvp(data->in_command[0], data->in_command) == -1)
-			error_exit("execvp_error", 0, data);
+		dup2(data->infile_fd, STDIN_FILENO);
+		dup2(pipe_fd[1], STDOUT_FILENO);
+		printf("wait\n");
+		printf("%s %s \n", data->in_command[0], data->in_command[1]);
+		exit(0);
+		//if (execvp(data->in_command[0], data->in_command) == -1)
+		//	error_exit("execvp_error", 0, data);
 	}
 	else
 	{
+		
 		wait(0);
 		printf("now_parent\n");
-		dup2(pipe_fd[0],STDIN_FILENO);
-		dup2(fileout_fd,STDOUT_FILENO);
+	}
+}
+
+void	exec_release_redirect(t_pipex *data, int *pipe_fd)
+{
+	if (fork() == 0)
+	{
+		dup2(pipe_fd[0], STDIN_FILENO);
+		dup2(data->outfile_fd, STDOUT_FILENO);
 		if (execvp(data->out_command[0], data->out_command) == -1)
 			error_exit("execvp_error", 0, data);
+		exit(0);
 	}
-	close(filein_fd);
+	wait(0);
+	printf("now_parent\n");
+}
+
+void	command_do(t_pipex *data)
+{
+	int	pipe_fd[2];
+
+	pipe(pipe_fd);
+	exec_absorb_redirect(data, pipe_fd);
+//	exec_release_redirect(data, pipe_fd);
+	free_pipe_data(data);
+	close(pipe_fd[1]);
+	close(pipe_fd[0]);
+	printf("finish\n");
 }
 
 int	main(int argc, char **argv)
