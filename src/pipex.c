@@ -6,7 +6,7 @@
 /*   By: hosokawa <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/04 11:31:23 by hosokawa          #+#    #+#             */
-/*   Updated: 2024/09/09 17:52:51 by hosokawa         ###   ########.fr       */
+/*   Updated: 2024/09/11 11:04:26 by hosokawa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,34 +52,43 @@ void	get_file_fd(t_pipex *data)
 		error_exit("out_file_cannot_open", 0, data);
 }
 
-// exeに問題があるのではないようだ
-// dupとpipeに問題がある可能性があるかもね。
-// プロセスとpipeとdupについて,パイプとプロセスについて考え
-// pipeの定義と静的か、どのようなものなんか、プロセスと、ファイルディスクーのコピーについて
-
-//pipeをそのままに
-void	exec_absorb_redirect(t_pipex *data, int *pipe_fd)
+void	exec_absorb_redirect(t_pipex *data)
 {
-	int	pid;
+	char	str[100];
 
+	int		pipe_fd[2];
 
-	pid = fork();
+	int i;
 
-	if (pid == 0)
+	i=0;
+	while(data->in_command[i])
 	{
-		dup2(data->infile_fd, STDIN_FILENO);
+		printf("command arv:%s\n",data->in_command[i]);
+		i++;
+	}
+
+	pipe(pipe_fd);
+	if (fork() == 0)
+	{
+		close(pipe_fd[0]);
+		//dup2(data->infile_fd, STDIN_FILENO);
 		dup2(pipe_fd[1], STDOUT_FILENO);
-		printf("wait\n");
-		printf("%s %s \n", data->in_command[0], data->in_command[1]);
-		exit(0);
-		//if (execvp(data->in_command[0], data->in_command) == -1)
-		//	error_exit("execvp_error", 0, data);
+		
+		close(data->infile_fd);
+		close(pipe_fd[1]);
+		if (execvp(data->in_command[0], data->in_command) == -1)
+			error_exit("execvp_error", 0, data);
 	}
 	else
 	{
-		
-		wait(0);
-		printf("now_parent\n");
+		close(pipe_fd[1]);
+		wait(NULL);
+		printf("now_perant\n");
+		read(pipe_fd[0], str, 10);
+		str[10]='\0';
+		printf("after_read\n");
+		write(STDOUT_FILENO, str, 10);
+		close(pipe_fd[0]);
 	}
 }
 
@@ -91,7 +100,6 @@ void	exec_release_redirect(t_pipex *data, int *pipe_fd)
 		dup2(data->outfile_fd, STDOUT_FILENO);
 		if (execvp(data->out_command[0], data->out_command) == -1)
 			error_exit("execvp_error", 0, data);
-		exit(0);
 	}
 	wait(0);
 	printf("now_parent\n");
@@ -99,14 +107,9 @@ void	exec_release_redirect(t_pipex *data, int *pipe_fd)
 
 void	command_do(t_pipex *data)
 {
-	int	pipe_fd[2];
-
-	pipe(pipe_fd);
-	exec_absorb_redirect(data, pipe_fd);
-//	exec_release_redirect(data, pipe_fd);
+	exec_absorb_redirect(data);
+	// exec_release_redirect(data, pipe_fd);
 	free_pipe_data(data);
-	close(pipe_fd[1]);
-	close(pipe_fd[0]);
 	printf("finish\n");
 }
 
@@ -121,3 +124,45 @@ int	main(int argc, char **argv)
 	command_do(&pipex_data);
 	return (0);
 }
+
+//
+// void	exec_absorb_redirect(t_pipex *data, int *pipe_fd)
+//{
+//	int	pid;
+//
+//
+//	pid = fork();
+//
+//	if (pid == 0)
+//	{
+//		dup2(data->infile_fd, STDIN_FILENO);
+//		dup2(pipe_fd[1], STDOUT_FILENO);
+//		printf("wait\n");
+//		printf("%s %s \n", data->in_command[0], data->in_command[1]);
+//		exit(0);
+//		//if (execvp(data->in_command[0], data->in_command) == -1)
+//		//	error_exit("execvp_error", 0, data);
+//	}
+//	else
+//	{
+//		close(pipe_fd[1]);
+//		wait(0);
+//		printf("now_parent\n");
+//	}
+//}
+//
+// void	exec_release_redirect(t_pipex *data, int *pipe_fd)
+//{
+//	if (fork() == 0)
+//	{
+//		dup2(pipe_fd[0], STDIN_FILENO);
+//		dup2(data->outfile_fd, STDOUT_FILENO);
+//		if (execvp(data->out_command[0], data->out_command) == -1)
+//			error_exit("execvp_error", 0, data);
+//		exit(0);
+//	}
+//	wait(0);
+//	printf("now_parent\n");
+//}
+//
+//
