@@ -6,7 +6,7 @@
 /*   By: hosokawa <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/04 11:31:23 by hosokawa          #+#    #+#             */
-/*   Updated: 2024/09/11 11:04:26 by hosokawa         ###   ########.fr       */
+/*   Updated: 2024/09/11 11:38:00 by hosokawa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ void	data_null_init(t_pipex *data)
 
 void	data_init(t_pipex *data, char **argv)
 {
+
 	data->infile = ft_strdup(argv[1]);
 	if (!data->infile)
 		error_exit("infile_malloc_error", 0, data);
@@ -50,6 +51,7 @@ void	get_file_fd(t_pipex *data)
 	data->outfile_fd = open(data->outfile, O_WRONLY);
 	if (data->outfile_fd == -1)
 		error_exit("out_file_cannot_open", 0, data);
+	printf("check_in_file_fd_first:%i\n",data->infile_fd);
 }
 
 void	exec_absorb_redirect(t_pipex *data)
@@ -67,13 +69,14 @@ void	exec_absorb_redirect(t_pipex *data)
 		i++;
 	}
 
+	printf("open_file_fd:%i\n",data->infile_fd);
+
 	pipe(pipe_fd);
 	if (fork() == 0)
 	{
 		close(pipe_fd[0]);
-		//dup2(data->infile_fd, STDIN_FILENO);
-		dup2(pipe_fd[1], STDOUT_FILENO);
-		
+		dup2(data->infile_fd, STDIN_FILENO);
+		dup2(pipe_fd[1], STDOUT_FILENO);	
 		close(data->infile_fd);
 		close(pipe_fd[1]);
 		if (execvp(data->in_command[0], data->in_command) == -1)
@@ -121,6 +124,7 @@ int	main(int argc, char **argv)
 		return (1);
 	data_null_init(&pipex_data);
 	data_init(&pipex_data, argv);
+	get_file_fd(&pipex_data);
 	command_do(&pipex_data);
 	return (0);
 }
