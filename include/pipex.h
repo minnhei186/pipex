@@ -6,7 +6,7 @@
 /*   By: hosokawa <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/04 11:29:09 by hosokawa          #+#    #+#             */
-/*   Updated: 2024/09/05 14:08:27 by hosokawa         ###   ########.fr       */
+/*   Updated: 2024/09/09 14:49:01 by hosokawa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,9 @@ typedef struct s_pipex
 	char	*outfile;
 	char	**in_command;
 	char	**out_command;
+
+	int infile_fd;
+	int outfile_fd;
 }			t_pipex;
 
 // free_exit_utils

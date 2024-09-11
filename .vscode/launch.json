@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": ["in_text.txt" ,"cat", "cat", "out_text.txt"],
+      "cwd": "/Users/hosokawa/42tokyo/level02/pipex",
+      "program": "/Users/hosokawa/42tokyo/level02/pipex/pipex"
+    }
+  ]
+}
