@@ -6,12 +6,24 @@
 /*   By: hosokawa <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/04 12:52:45 by hosokawa          #+#    #+#             */
-/*   Updated: 2024/09/09 14:55:51 by hosokawa         ###   ########.fr       */
+/*   Updated: 2024/09/11 12:58:58 by hosokawa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <pipex.h>
 
+void	pipex_double_free(char **ppt)
+{
+	int	i;
+
+	i = 0;
+	while (ppt[i])
+	{
+		free(ppt[i]);
+		i++;
+	}
+	free(ppt);
+}
 
 void	free_pipe_data(t_pipex *data)
 {
@@ -20,19 +32,18 @@ void	free_pipe_data(t_pipex *data)
 	if (data->outfile)
 		free(data->outfile);
 	if (data->in_command)
-		free(data->in_command);
+		pipex_double_free(data->in_command);
 	if (data->out_command)
-		free(data->out_command);
+		pipex_double_free(data->out_command);
 }
 
-void close_fd_data(t_pipex *data)
+void	close_fd_data(t_pipex *data)
 {
-	if(data->infile_fd!=-1)
+	if (data->infile_fd != -1)
 		close(data->infile_fd);
-	if(data->outfile_fd!=-1)
+	if (data->outfile_fd != -1)
 		close(data->outfile_fd);
 }
-
 
 void	error_exit(char *message, int error_type, t_pipex *data)
 {
@@ -49,4 +60,3 @@ void	error_exit(char *message, int error_type, t_pipex *data)
 		exit(EXIT_FAILURE);
 	}
 }
-
